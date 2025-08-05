@@ -17,7 +17,7 @@ reddit = praw.Reddit(
     user_agent="TWS Promo Bot by u/" + os.getenv("REDDIT_USERNAME")
 )
 
-# ✅ AI-like random comment generator
+# ✅ AI-style randomized comment
 def generate_comment():
     greetings = ["Hey!", "Hi there!", "Yo!", "Hello!", "What's up!"]
     phrases = [
@@ -28,11 +28,7 @@ def generate_comment():
         "Need to vent or connect anonymously?"
     ]
     endings = [
-        "Try out",
-        "Check out",
-        "Give a shot to",
-        "You might like",
-        "Have a look at"
+        "Try out", "Check out", "Give a shot to", "You might like", "Have a look at"
     ]
     platforms = [
         "**[TalkWithStranger](https://talkwithstranger.com)**",
@@ -54,12 +50,16 @@ def generate_comment():
         "Chat safe & have fun!"
     ]
 
-    comment = f"""{random.choice(greetings)} {random.choice(phrases)}  
-{random.choice(endings)} {random.choice(platforms)}  
-{random.choice(closers)}  
-{random.choice(followup)}"""
-
-    return comment
+    components = [
+        random.choice(greetings),
+        random.choice(phrases),
+        random.choice(endings),
+        random.choice(platforms),
+        random.choice(closers),
+        random.choice(followup)
+    ]
+    random.shuffle(components)
+    return " ".join(components)
 
 # ✅ Load subreddits from file
 def load_subreddits():
@@ -74,48 +74,53 @@ def has_already_replied(submission):
             return True
     return False
 
-# ✅ Upvote and comment on new posts
-def promote_once():
+# ✅ Perform a comment
+def do_comment():
     subreddits = load_subreddits()
     sub = random.choice(subreddits)
-    print(f"🔍 Searching in r/{sub}...")
+    print(f"💬 Comment task in r/{sub}")
 
     try:
         subreddit = reddit.subreddit(sub)
-        for submission in subreddit.hot(limit=10):
-            if not has_already_replied(submission):
-                print(f"👍 Liking and 💬 commenting on post: {submission.title}")
-                submission.upvote()
-                promo_comment = generate_comment()
-                submission.reply(promo_comment)
-                print(f"✅ Replied with: {promo_comment}\n")
-                break
+        posts = list(subreddit.hot(limit=10))
+        random.shuffle(posts)
+
+        for post in posts:
+            if not has_already_replied(post):
+                comment_text = generate_comment()
+                post.reply(comment_text)
+                print(f"✅ Commented on: {post.title}")
+                print(f"📝 Comment: {comment_text}")
+                return
     except APIException as e:
         if "RATELIMIT" in str(e):
             delay = extract_wait_time(str(e))
-            print(f"⏳ Rate limited. Sleeping for {delay} seconds...")
+            print(f"⏳ Rate limited for comment. Sleeping {delay} sec...")
             time.sleep(delay)
         else:
-            print(f"❌ API Error: {e}")
+            print(f"❌ API Error during comment: {e}")
     except Exception as e:
-        print(f"❌ General Error: {e}")
+        print(f"❌ General Error during comment: {e}")
 
-# ✅ Just upvote some random posts to look natural
-def upvote_random_posts():
+# ✅ Perform an upvote
+def do_upvote():
     subreddits = load_subreddits()
     sub = random.choice(subreddits)
-    print(f"🎯 Randomly liking posts in r/{sub}...")
+    print(f"👍 Upvote task in r/{sub}")
 
     try:
         subreddit = reddit.subreddit(sub)
-        for submission in subreddit.hot(limit=5):
-            print(f"👍 Upvoting post: {submission.title}")
-            submission.upvote()
-            time.sleep(random.randint(10, 30))  # short delay between each upvote
-    except Exception as e:
-        print(f"❌ Error while upvoting in r/{sub}: {e}")
+        posts = list(subreddit.hot(limit=10))
+        random.shuffle(posts)
 
-# ✅ Handle Reddit’s rate limit time (e.g. wait for 9 minutes)
+        for post in posts:
+            print(f"👍 Upvoting: {post.title}")
+            post.upvote()
+            return
+    except Exception as e:
+        print(f"⚠️ Upvote error: {e}")
+
+# ✅ Rate limit parser
 def extract_wait_time(error_msg):
     import re
     match = re.search(r"(\d+) minutes?", error_msg)
@@ -124,17 +129,21 @@ def extract_wait_time(error_msg):
     match = re.search(r"(\d+) seconds?", error_msg)
     if match:
         return int(match.group(1))
-    return 600  # default 10 mins
+    return 600
 
-# ✅ Main Loop
+# ✅ Main scheduler
 if __name__ == "__main__":
+    print("🚀 Reddit Promo Bot started. Running every 30 minutes (6 tasks, 5 min each).")
     while True:
-        action = random.choice(["promote", "upvote"])
-        if action == "promote":
-            promote_once()
-        else:
-            upvote_random_posts()
+        print("\n🕒 Starting new 30-minute promotion cycle...\n")
 
-        wait_time = random.randint(1200, 1800)  # 20–30 mins
-        print(f"⏸ Sleeping for {wait_time // 60} minutes...\n")
-        time.sleep(wait_time)
+        # 1. Comment first
+        do_comment()
+        time.sleep(300)  # 5 min
+
+        # 2–6. Then 5 upvotes
+        for _ in range(5):
+            do_upvote()
+            time.sleep(300)  # 5 min
+
+        print("\n⏸ 30-minute cycle complete. Starting again...\n")
