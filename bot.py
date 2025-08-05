@@ -5,10 +5,9 @@ import os
 from praw.exceptions import APIException
 from dotenv import load_dotenv
 
-# ✅ Load environment variables from .env
+# ✅ Load environment variables
 load_dotenv()
 
-# ✅ Reddit Auth Setup
 reddit = praw.Reddit(
     client_id=os.getenv("REDDIT_CLIENT_ID"),
     client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
@@ -17,7 +16,7 @@ reddit = praw.Reddit(
     user_agent="TWS Promo Bot by u/" + os.getenv("REDDIT_USERNAME")
 )
 
-# ✅ AI-style randomized comment
+# ✅ Generate randomized comment
 def generate_comment():
     greetings = ["Hey!", "Hi there!", "Yo!", "Hello!", "What's up!"]
     phrases = [
@@ -61,12 +60,12 @@ def generate_comment():
     random.shuffle(components)
     return " ".join(components)
 
-# ✅ Load subreddits from file
+# ✅ Load subreddits list
 def load_subreddits():
     with open("subreddits.txt", "r") as f:
         return [line.strip() for line in f if line.strip()]
 
-# ✅ Check if already replied to the post
+# ✅ Check if bot already replied
 def has_already_replied(submission):
     submission.comments.replace_more(limit=0)
     for comment in submission.comments:
@@ -74,8 +73,16 @@ def has_already_replied(submission):
             return True
     return False
 
-# ✅ Perform a comment
+# ✅ Logging time countdown
+def log_progress(seconds, task_name):
+    for remaining in range(seconds, 0, -60):
+        mins = remaining // 60
+        print(f"⏳ {task_name} starting in {mins} min(s)...")
+        time.sleep(60)
+
+# ✅ Commenting task
 def do_comment():
+    print("🚀 Task 1/6: COMMENT starting...")
     subreddits = load_subreddits()
     sub = random.choice(subreddits)
     print(f"💬 Comment task in r/{sub}")
@@ -92,6 +99,7 @@ def do_comment():
                 print(f"✅ Commented on: {post.title}")
                 print(f"📝 Comment: {comment_text}")
                 return
+        print("⚠️ No suitable post to comment on.")
     except APIException as e:
         if "RATELIMIT" in str(e):
             delay = extract_wait_time(str(e))
@@ -101,9 +109,11 @@ def do_comment():
             print(f"❌ API Error during comment: {e}")
     except Exception as e:
         print(f"❌ General Error during comment: {e}")
+    print("✅ Comment task complete.\n")
 
-# ✅ Perform an upvote
-def do_upvote():
+# ✅ Upvote task
+def do_upvote(task_num):
+    print(f"🚀 Task {task_num}/6: UPVOTE starting...")
     subreddits = load_subreddits()
     sub = random.choice(subreddits)
     print(f"👍 Upvote task in r/{sub}")
@@ -116,9 +126,10 @@ def do_upvote():
         for post in posts:
             print(f"👍 Upvoting: {post.title}")
             post.upvote()
-            return
+            break
     except Exception as e:
         print(f"⚠️ Upvote error: {e}")
+    print(f"✅ Upvote task {task_num} complete.\n")
 
 # ✅ Rate limit parser
 def extract_wait_time(error_msg):
@@ -131,19 +142,19 @@ def extract_wait_time(error_msg):
         return int(match.group(1))
     return 600
 
-# ✅ Main scheduler
+# ✅ Main Loop
 if __name__ == "__main__":
-    print("🚀 Reddit Promo Bot started. Running every 30 minutes (6 tasks, 5 min each).")
+    print("🎯 Reddit Promo Bot launched. 30-min cycle: 1 comment + 5 upvotes (every 5 mins).")
     while True:
-        print("\n🕒 Starting new 30-minute promotion cycle...\n")
+        print("\n🔄 Starting new 30-minute cycle...\n")
 
-        # 1. Comment first
+        # Task 1: Comment
         do_comment()
-        time.sleep(300)  # 5 min
+        log_progress(300, "Upvote Task 2")
 
-        # 2–6. Then 5 upvotes
-        for _ in range(5):
-            do_upvote()
-            time.sleep(300)  # 5 min
+        # Tasks 2–6: Upvotes every 5 min
+        for i in range(2, 7):
+            do_upvote(i)
+            log_progress(300, f"Upvote Task {i+1 if i < 6 else 'Restart'}")
 
-        print("\n⏸ 30-minute cycle complete. Starting again...\n")
+        print("✅ 30-minute cycle complete. Restarting...\n")
