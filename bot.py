@@ -30,9 +30,9 @@ def generate_comment():
         "Try out", "Check out", "Give a shot to", "You might like", "Have a look at"
     ]
     platforms = [
-        "**[TalkWithStranger](https://talkwithstranger.com)**",
-        "**[TWS - TalkWithStranger](https://talkwithstranger.com)**",
-        "**[talkwithstranger.com](https://talkwithstranger.com)**"
+        "**[TalkWithStranger](https://linkly.link/2CZrh)**",
+        "**[TWS - TalkWithStranger](https://linkly.link/2CZrh)**",
+        "**[talkwithstranger.com](https://linkly.link/2CZrh)**"
     ]
     closers = [
         "Totally free & anonymous. 🌐 No signup needed.",
